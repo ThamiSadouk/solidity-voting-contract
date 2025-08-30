@@ -8,8 +8,8 @@ error WinnersAlreadyTallied();
 error MissingWinners();
 
 contract VotingPlus is Voting {
-    mapping(address => bool) isWinning;
-    address[] winners;
+    mapping(address => bool) private isWinning;
+    address[] private winners;
 
     // L'administrateur détermine les électeurs ayant remporté le vote
     function tallyWinningVoters() external onlyOwner {
@@ -51,11 +51,6 @@ contract VotingPlus is Voting {
         delete proposals;
         delete winningProposals;
         delete winners;
-
-        for (uint i = 0; i < proposals.length; i++) {
-            bytes32 descriptionHash = keccak256(bytes(proposals[i].description));
-            proposalExists[descriptionHash] = false;
-        }
 
         workflowStatus = WorkflowStatus.RegisteringVoters;
     }
