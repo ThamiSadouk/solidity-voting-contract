@@ -12,6 +12,8 @@ npx hardhat coverage
 ```
 
 # Test coverage
+
+```text
   Voting
     Registering voters session
       ✔ Should add voter
@@ -50,6 +52,7 @@ npx hardhat coverage
 
 
   30 passing (241ms)
+```
 
 -------------|----------|----------|----------|----------|----------------|
 File         |  % Stmts | % Branch |  % Funcs |  % Lines |Uncovered Lines |

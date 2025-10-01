@@ -56,7 +56,7 @@ describe("Voting", function () {
         it("should emit event on addVoter", async function () {
             const {voting, voter1} = await loadFixture(deployFixture)
 
-            expect(await voting.addVoter(voter1.address))
+            await expect(voting.addVoter(voter1.address))
                 .to.emit(voting, "VoterRegistered")
                 .withArgs(voter1.address)
         })
@@ -142,7 +142,7 @@ describe("Voting", function () {
             const { voting, voter1 } = await deployFixtureWithVoters()
             await voting.startProposalsRegistering()
 
-            expect(await voting.connect(voter1).addProposal("A"))
+            await expect(voting.connect(voter1).addProposal("A"))
               .to.emit(voting, "ProposalRegistered")
               .withArgs(1)
         })
@@ -238,7 +238,7 @@ describe("Voting", function () {
 
             await c.startVotingSession()
 
-            await expect(await c.connect(v1).setVote(1)) // vote A
+            await expect(c.connect(v1).setVote(1)) // vote A
               .to.emit(c, "Voted")
               .withArgs(v1.address, 1)
         })
@@ -302,7 +302,7 @@ describe("Voting", function () {
             await c.connect(v1).setVote(1) // vote A
             await c.endVotingSession()
 
-            expect(await c.tallyVotes())
+            await expect(c.tallyVotes())
               .to.emit(c, "WorkflowStatusChange")
               .withArgs(4, 5)
         })
@@ -328,7 +328,7 @@ describe("Voting", function () {
 
         it("Should winingProposalId on 0 when tallyVotes has not been triggered", async function () {
             await c.startProposalsRegistering()
-            await c.connect(v1).addProposal("Only")
+            await c.connect(v1).addProposal("A")
             await c.endProposalsRegistering()
             await c.startVotingSession()
             await c.connect(v1).setVote(1)
