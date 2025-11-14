@@ -9,6 +9,10 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 contract Voting is Ownable {
     uint public winningProposalID;
 
+    uint public constant MAX_VOTERS = 10;
+    uint public constant MAX_PROPOSALS_PER_VOTER = 3;
+    uint public constant MAX_DESC = 200;
+
     struct Voter {
         bool isRegistered;
         bool hasVoted;
@@ -30,8 +34,11 @@ contract Voting is Ownable {
     }
 
     WorkflowStatus public workflowStatus;
+    uint256 public registeredVoters;
+    mapping(address => uint256) public proposalsByVoter;
     Proposal[] proposalsArray;
     mapping (address => Voter) voters;
+    address[] private votersArray;
 
     event VoterRegistered(address voterAddress);
     event WorkflowStatusChange(WorkflowStatus previousStatus, WorkflowStatus newStatus);
@@ -72,8 +79,13 @@ contract Voting is Ownable {
     function addVoter(address _addr) external onlyOwner {
         require(workflowStatus == WorkflowStatus.RegisteringVoters, "Voters registration is not open yet");
         require(voters[_addr].isRegistered != true, "Already registered");
+        require(registeredVoters < MAX_VOTERS, "voters cap reached");
 
         voters[_addr].isRegistered = true;
+        registeredVoters += 1;
+
+        votersArray.push(_addr);
+
         emit VoterRegistered(_addr);
     }
 
@@ -84,8 +96,12 @@ contract Voting is Ownable {
     /// @param _desc Short description; must be non-empty.
     function addProposal(string calldata _desc) external onlyVoters {
         require(workflowStatus == WorkflowStatus.ProposalsRegistrationStarted, "Proposals are not allowed yet");
-        require(keccak256(abi.encode(_desc)) != keccak256(abi.encode("")), "Vous ne pouvez pas ne rien proposer");
+        require(proposalsByVoter[msg.sender] < MAX_PROPOSALS_PER_VOTER, "You can't propose more than 3 propositions");
+        uint len = bytes(_desc).length;
+        require(len != 0, "Proposal can't be empty");
+        require(len <= MAX_DESC, "max desc is 200");
 
+        proposalsByVoter[msg.sender] += 1;
         Proposal memory proposal;
         proposal.description = _desc;
         proposalsArray.push(proposal);
@@ -164,5 +180,26 @@ contract Voting is Ownable {
         winningProposalID = _winningProposalId;
         workflowStatus = WorkflowStatus.VotesTallied;
         emit WorkflowStatusChange(WorkflowStatus.VotingSessionEnded, WorkflowStatus.VotesTallied);
+    }
+
+    /// @notice Réinitialize until the proposal registery session (not the voters)
+    function startNewRound() external onlyOwner {
+        require(workflowStatus == WorkflowStatus.VotesTallied, "finish first");
+
+        for (uint i = 0; i < votersArray.length; i++) {
+            address a = votersArray[i];
+            voters[a].hasVoted = false;
+            voters[a].votedProposalId = 0;
+            proposalsByVoter[a] = 0;
+        }
+
+        delete winningProposalID;
+        delete proposalsArray;
+
+        // init proposition GENESIS for new round
+        proposalsArray.push(Proposal({ description: "GENESIS", voteCount: 0 }));
+
+        workflowStatus = WorkflowStatus.ProposalsRegistrationStarted;
+        emit WorkflowStatusChange(WorkflowStatus.VotesTallied, WorkflowStatus.ProposalsRegistrationStarted);
     }
 }
